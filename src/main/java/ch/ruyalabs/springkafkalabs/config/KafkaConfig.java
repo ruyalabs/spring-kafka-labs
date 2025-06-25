@@ -61,11 +61,13 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, PaymentRequestDto> paymentRequestKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, PaymentRequestDto> paymentRequestKafkaListenerContainerFactory(
+            PaymentRequestDeserializationErrorHandler errorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, PaymentRequestDto> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(paymentRequestConsumerFactory());
         factory.setConcurrency(1); // Process messages one at a time
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+        factory.setCommonErrorHandler(errorHandler);
         return factory;
     }
 
