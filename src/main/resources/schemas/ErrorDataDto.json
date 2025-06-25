@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/error-data.schema.json",
+  "title": "ErrorDataDto",
+  "description": "Error data for a payment response",
+  "type": "object",
+  "properties": {
+    "errorCode": {
+      "type": "string",
+      "description": "Error code identifying the type of error"
+    },
+    "errorMessage": {
+      "type": "string",
+      "description": "Human-readable error message"
+    },
+    "errorDetails": {
+      "type": "string",
+      "description": "Additional error details for debugging"
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the error occurred"
+    }
+  },
+  "required": ["errorCode", "errorMessage", "occurredAt"],
+  "additionalProperties": false
+}

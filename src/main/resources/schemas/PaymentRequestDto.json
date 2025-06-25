@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/payment-request.schema.json",
+  "title": "PaymentRequestDto",
+  "description": "A payment request message",
+  "type": "object",
+  "properties": {
+    "paymentId": {
+      "type": "string",
+      "description": "Unique identifier for the payment request"
+    },
+    "isFaulty": {
+      "type": "boolean",
+      "description": "Flag indicating if this request should trigger an error for testing purposes"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Payment amount"
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "description": "Three-letter currency code (ISO 4217)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Payment description"
+    }
+  },
+  "required": ["paymentId", "isFaulty", "amount", "currency"],
+  "additionalProperties": false
+}

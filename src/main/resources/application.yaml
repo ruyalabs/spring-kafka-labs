@@ -1,3 +1,28 @@
 spring:
   kafka:
     bootstrap-servers: localhost:29092,localhost:29093,localhost:29094
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "ch.ruyalabs.springkafkalabs.dto"
+        spring.json.type.mapping: "PaymentRequestDto:ch.ruyalabs.springkafkalabs.dto.PaymentRequestDto,PaymentResponseDto:ch.ruyalabs.springkafkalabs.dto.PaymentResponseDto"
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    listener:
+      ack-mode: manual_immediate
+
+# Application specific configuration
+app:
+  kafka:
+    topics:
+      payment-request: payment-request
+      payment-response: payment-response
+      payment-execution-request: payment-execution-request
+      payment-execution-response: payment-execution-response
+    consumer:
+      payment-request-group: payment-request-consumer-group
+      payment-execution-response-group: payment-execution-response-consumer-group

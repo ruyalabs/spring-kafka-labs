@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/payment-response.schema.json",
+  "title": "PaymentResponseDto",
+  "description": "A payment response message containing either success or error data",
+  "type": "object",
+  "properties": {
+    "paymentId": {
+      "type": "string",
+      "description": "Unique identifier for the payment request"
+    }
+  },
+  "required": ["paymentId"],
+  "oneOf": [
+    {
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "successData": {
+          "$ref": "SuccessDataDto.json"
+        }
+      },
+      "required": ["paymentId", "successData"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "paymentId": {
+          "type": "string"
+        },
+        "errorData": {
+          "$ref": "ErrorDataDto.json"
+        }
+      },
+      "required": ["paymentId", "errorData"],
+      "additionalProperties": false
+    }
+  ]
+}
