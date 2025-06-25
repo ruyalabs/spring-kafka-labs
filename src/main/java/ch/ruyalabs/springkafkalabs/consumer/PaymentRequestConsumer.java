@@ -21,11 +21,16 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validator;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -35,6 +40,7 @@ public class PaymentRequestConsumer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final MailService mailService;
     private final ReliableResponseProducer reliableResponseProducer;
+    private final Validator validator;
 
     @Value("${app.kafka.topics.payment-execution-request}")
     private String paymentExecutionRequestTopic;
@@ -76,10 +82,20 @@ public class PaymentRequestConsumer {
     }
 
     /**
-     * Performs internal validation on the payment request.
-     * Throws specific exceptions for various validation failures.
+     * Performs automatic Jakarta validation on the payment request.
+     * Throws ConstraintViolationException for validation failures.
      */
     private void validatePaymentRequest(PaymentRequestDto paymentRequest) throws PaymentValidationException {
+        // Perform automatic Jakarta Validation
+        Set<ConstraintViolation<PaymentRequestDto>> violations = validator.validate(paymentRequest);
+        if (!violations.isEmpty()) {
+            String violationMessages = violations.stream()
+                    .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
+                    .collect(Collectors.joining(", "));
+            throw new ConstraintViolationException("Validation failed: " + violationMessages, violations);
+        }
+
+        // Additional business logic validation
         if (Boolean.TRUE.equals(paymentRequest.getIsFaulty())) {
             throw new FaultyRequestException("Payment request is marked as faulty for testing purposes");
         }
@@ -88,12 +104,8 @@ public class PaymentRequestConsumer {
             throw new InvalidCurrencyException("Unsupported currency: " + paymentRequest.getCurrency());
         }
 
-        if (paymentRequest.getAmount() == null || paymentRequest.getAmount() <= 0) {
+        if (paymentRequest.getAmount() != null && paymentRequest.getAmount() <= 0) {
             throw new InvalidAmountException("Invalid payment amount: " + paymentRequest.getAmount());
-        }
-
-        if (paymentRequest.getPaymentId() == null || paymentRequest.getPaymentId().trim().isEmpty()) {
-            throw new MissingPaymentIdException("Payment ID cannot be null or empty");
         }
 
         log.debug("Payment request validation passed: paymentId={}", paymentRequest.getPaymentId());
@@ -135,7 +147,9 @@ public class PaymentRequestConsumer {
      * Uses instanceof checks for reliable exception type detection.
      */
     private String determineErrorCode(Exception exception) {
-        if (exception instanceof FaultyRequestException) {
+        if (exception instanceof ConstraintViolationException) {
+            return "JAKARTA_VALIDATION_ERROR";
+        } else if (exception instanceof FaultyRequestException) {
             return "FAULTY_REQUEST_ERROR";
         } else if (exception instanceof InvalidCurrencyException) {
             return "INVALID_CURRENCY_ERROR";
