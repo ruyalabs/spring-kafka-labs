@@ -135,7 +135,7 @@ public class PaymentProcessingIntegrationTest {
             assertEquals("test-payment-error-001", errorRecord.value().getPaymentId());
 
             // Verify it contains error data
-            Object errorData = errorRecord.value().getAdditionalProperties().get("errorData");
+            ErrorDataDto errorData = errorRecord.value().getErrorData();
             assertNotNull(errorData, "Response should contain error data");
 
         } finally {
@@ -171,7 +171,7 @@ public class PaymentProcessingIntegrationTest {
             assertEquals("test-payment-validation-001", errorRecord.key());
 
             // Verify it contains validation error data
-            Object errorData = errorRecord.value().getAdditionalProperties().get("errorData");
+            ErrorDataDto errorData = errorRecord.value().getErrorData();
             assertNotNull(errorData, "Response should contain validation error data");
 
         } finally {
@@ -188,7 +188,7 @@ public class PaymentProcessingIntegrationTest {
 
         PaymentResponseDto response = new PaymentResponseDto();
         response.setPaymentId(paymentId);
-        response.setAdditionalProperty("successData", successData);
+        response.setSuccessData(successData);
 
         return response;
     }

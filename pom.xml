@@ -95,6 +95,8 @@
                     <useLongIntegers>true</useLongIntegers>
                     <includeToString>true</includeToString>
                     <includeHashcodeAndEquals>true</includeHashcodeAndEquals>
+                    <includeAdditionalProperties>false</includeAdditionalProperties>
+                    <includeAllPropertiesConstructor>true</includeAllPropertiesConstructor>
                 </configuration>
                 <executions>
                     <execution>

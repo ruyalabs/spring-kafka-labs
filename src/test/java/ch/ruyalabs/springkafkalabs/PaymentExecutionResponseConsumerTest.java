@@ -1,6 +1,7 @@
 package ch.ruyalabs.springkafkalabs;
 
 import ch.ruyalabs.springkafkalabs.consumer.PaymentExecutionResponseConsumer;
+import ch.ruyalabs.springkafkalabs.dto.ErrorDataDto;
 import ch.ruyalabs.springkafkalabs.dto.PaymentResponseDto;
 import ch.ruyalabs.springkafkalabs.dto.SuccessDataDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +34,7 @@ public class PaymentExecutionResponseConsumerTest {
     @BeforeEach
     void setUp() {
         paymentExecutionResponseConsumer = new PaymentExecutionResponseConsumer(kafkaTemplate);
-        
+
         // Set the topic name using reflection since it's @Value injected
         ReflectionTestUtils.setField(paymentExecutionResponseConsumer, "paymentResponseTopic", "payment-response");
     }
@@ -87,15 +88,20 @@ public class PaymentExecutionResponseConsumerTest {
 
         PaymentResponseDto response = new PaymentResponseDto();
         response.setPaymentId(paymentId);
-        response.setAdditionalProperty("successData", successData);
+        response.setSuccessData(successData);
 
         return response;
     }
 
     private PaymentResponseDto createErrorResponse(String paymentId) {
+        ErrorDataDto errorData = new ErrorDataDto();
+        errorData.setErrorCode("TEST_ERROR");
+        errorData.setErrorMessage("Some error occurred");
+        errorData.setOccurredAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()));
+
         PaymentResponseDto response = new PaymentResponseDto();
         response.setPaymentId(paymentId);
-        response.setAdditionalProperty("errorData", "Some error occurred");
+        response.setErrorData(errorData);
 
         return response;
     }

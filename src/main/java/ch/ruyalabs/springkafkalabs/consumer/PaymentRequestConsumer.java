@@ -3,6 +3,11 @@ package ch.ruyalabs.springkafkalabs.consumer;
 import ch.ruyalabs.springkafkalabs.dto.ErrorDataDto;
 import ch.ruyalabs.springkafkalabs.dto.PaymentRequestDto;
 import ch.ruyalabs.springkafkalabs.dto.PaymentResponseDto;
+import ch.ruyalabs.springkafkalabs.exception.FaultyRequestException;
+import ch.ruyalabs.springkafkalabs.exception.InvalidAmountException;
+import ch.ruyalabs.springkafkalabs.exception.InvalidCurrencyException;
+import ch.ruyalabs.springkafkalabs.exception.MissingPaymentIdException;
+import ch.ruyalabs.springkafkalabs.exception.PaymentValidationException;
 import ch.ruyalabs.springkafkalabs.service.MailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +40,6 @@ public class PaymentRequestConsumer {
     @Value("${app.kafka.topics.payment-response}")
     private String paymentResponseTopic;
 
-    // List of supported currencies for validation
     private static final List<String> SUPPORTED_CURRENCIES = Arrays.asList("USD", "EUR", "GBP", "CHF");
 
     @KafkaListener(
@@ -53,49 +57,41 @@ public class PaymentRequestConsumer {
                 paymentRequest.getPaymentId(), topic, partition, offset);
 
         try {
-            // Perform internal validation
             validatePaymentRequest(paymentRequest);
 
-            // If validation passes, forward to payment execution topic
             kafkaTemplate.send(paymentExecutionRequestTopic, paymentRequest.getPaymentId(), paymentRequest);
             log.info("Successfully forwarded payment request to execution topic: paymentId={}", 
                     paymentRequest.getPaymentId());
 
-            // Acknowledge the message only after successful processing
             acknowledgment.acknowledge();
 
         } catch (Exception exception) {
             log.error("Error processing payment request: paymentId={}, error={}", 
                     paymentRequest.getPaymentId(), exception.getMessage(), exception);
 
-            // Handle the error by creating and sending error response
             handlePaymentError(paymentRequest.getPaymentId(), exception, acknowledgment);
         }
     }
 
     /**
      * Performs internal validation on the payment request.
-     * Throws exceptions for various validation failures.
+     * Throws specific exceptions for various validation failures.
      */
-    private void validatePaymentRequest(PaymentRequestDto paymentRequest) {
-        // Check if the request is marked as faulty (for testing purposes)
+    private void validatePaymentRequest(PaymentRequestDto paymentRequest) throws PaymentValidationException {
         if (Boolean.TRUE.equals(paymentRequest.getIsFaulty())) {
-            throw new IllegalArgumentException("Payment request is marked as faulty for testing purposes");
+            throw new FaultyRequestException("Payment request is marked as faulty for testing purposes");
         }
 
-        // Validate currency
         if (!SUPPORTED_CURRENCIES.contains(paymentRequest.getCurrency())) {
-            throw new IllegalArgumentException("Unsupported currency: " + paymentRequest.getCurrency());
+            throw new InvalidCurrencyException("Unsupported currency: " + paymentRequest.getCurrency());
         }
 
-        // Validate amount
         if (paymentRequest.getAmount() == null || paymentRequest.getAmount() <= 0) {
-            throw new IllegalArgumentException("Invalid payment amount: " + paymentRequest.getAmount());
+            throw new InvalidAmountException("Invalid payment amount: " + paymentRequest.getAmount());
         }
 
-        // Validate payment ID
         if (paymentRequest.getPaymentId() == null || paymentRequest.getPaymentId().trim().isEmpty()) {
-            throw new IllegalArgumentException("Payment ID cannot be null or empty");
+            throw new MissingPaymentIdException("Payment ID cannot be null or empty");
         }
 
         log.debug("Payment request validation passed: paymentId={}", paymentRequest.getPaymentId());
@@ -107,24 +103,19 @@ public class PaymentRequestConsumer {
      */
     private void handlePaymentError(String paymentId, Exception exception, Acknowledgment acknowledgment) {
         try {
-            // Create error response
             PaymentResponseDto errorResponse = createErrorResponse(paymentId, exception);
 
-            // Send error response to payment-response topic
             kafkaTemplate.send(paymentResponseTopic, paymentId, errorResponse);
             log.info("Successfully sent error response to payment-response topic: paymentId={}", paymentId);
 
-            // Acknowledge the original message after successful error handling
             acknowledgment.acknowledge();
 
         } catch (Exception fallbackException) {
             log.error("Failed to send error response to payment-response topic: paymentId={}, fallbackError={}", 
                     paymentId, fallbackException.getMessage(), fallbackException);
 
-            // Ultimate fallback: notify operations team
             triggerUltimateFallback(paymentId, exception, fallbackException);
 
-            // Still acknowledge the message to prevent infinite reprocessing
             acknowledgment.acknowledge();
         }
     }
@@ -143,19 +134,26 @@ public class PaymentRequestConsumer {
 
         PaymentResponseDto response = new PaymentResponseDto();
         response.setPaymentId(paymentId);
-        response.setAdditionalProperty("errorData", errorData);
+        response.setErrorData(errorData);
 
         return response;
     }
 
     /**
-     * Determines the appropriate error code based on the exception type.
+     * Determines the appropriate error code based on the specific exception type.
+     * Uses instanceof checks for reliable exception type detection.
      */
     private String determineErrorCode(Exception exception) {
-        if (exception instanceof IllegalArgumentException) {
-            return "VALIDATION_ERROR";
-        } else if (exception.getMessage() != null && exception.getMessage().contains("faulty")) {
+        if (exception instanceof FaultyRequestException) {
             return "FAULTY_REQUEST_ERROR";
+        } else if (exception instanceof InvalidCurrencyException) {
+            return "INVALID_CURRENCY_ERROR";
+        } else if (exception instanceof InvalidAmountException) {
+            return "INVALID_AMOUNT_ERROR";
+        } else if (exception instanceof MissingPaymentIdException) {
+            return "MISSING_PAYMENT_ID_ERROR";
+        } else if (exception instanceof PaymentValidationException) {
+            return "VALIDATION_ERROR";
         } else {
             return "INTERNAL_PROCESSING_ERROR";
         }

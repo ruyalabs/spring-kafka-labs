@@ -1,12 +1,7 @@
 
 package ch.ruyalabs.springkafkalabs.dto;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import javax.annotation.processing.Generated;
-import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonAnySetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
@@ -23,7 +18,9 @@ import jakarta.validation.constraints.NotNull;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
-    "paymentId"
+    "paymentId",
+    "successData",
+    "errorData"
 })
 @Generated("jsonschema2pojo")
 public class PaymentResponseDto {
@@ -37,9 +34,26 @@ public class PaymentResponseDto {
     @JsonPropertyDescription("Unique identifier for the payment request")
     @NotNull
     private String paymentId;
-    @JsonIgnore
+    /**
+     * SuccessDataDto
+     * <p>
+     * Success data for a payment response
+     * 
+     */
+    @JsonProperty("successData")
+    @JsonPropertyDescription("Success data for a payment response")
     @Valid
-    private Map<String, Object> additionalProperties = new LinkedHashMap<String, Object>();
+    private SuccessDataDto successData;
+    /**
+     * ErrorDataDto
+     * <p>
+     * Error data for a payment response
+     * 
+     */
+    @JsonProperty("errorData")
+    @JsonPropertyDescription("Error data for a payment response")
+    @Valid
+    private ErrorDataDto errorData;
 
     /**
      * No args constructor for use in serialization
@@ -78,14 +92,48 @@ public class PaymentResponseDto {
         this.paymentId = paymentId;
     }
 
-    @JsonAnyGetter
-    public Map<String, Object> getAdditionalProperties() {
-        return this.additionalProperties;
+    /**
+     * SuccessDataDto
+     * <p>
+     * Success data for a payment response
+     * 
+     */
+    @JsonProperty("successData")
+    public SuccessDataDto getSuccessData() {
+        return successData;
     }
 
-    @JsonAnySetter
-    public void setAdditionalProperty(String name, Object value) {
-        this.additionalProperties.put(name, value);
+    /**
+     * SuccessDataDto
+     * <p>
+     * Success data for a payment response
+     * 
+     */
+    @JsonProperty("successData")
+    public void setSuccessData(SuccessDataDto successData) {
+        this.successData = successData;
+    }
+
+    /**
+     * ErrorDataDto
+     * <p>
+     * Error data for a payment response
+     * 
+     */
+    @JsonProperty("errorData")
+    public ErrorDataDto getErrorData() {
+        return errorData;
+    }
+
+    /**
+     * ErrorDataDto
+     * <p>
+     * Error data for a payment response
+     * 
+     */
+    @JsonProperty("errorData")
+    public void setErrorData(ErrorDataDto errorData) {
+        this.errorData = errorData;
     }
 
     @Override
@@ -96,9 +144,13 @@ public class PaymentResponseDto {
         sb.append('=');
         sb.append(((this.paymentId == null)?"<null>":this.paymentId));
         sb.append(',');
-        sb.append("additionalProperties");
+        sb.append("successData");
         sb.append('=');
-        sb.append(((this.additionalProperties == null)?"<null>":this.additionalProperties));
+        sb.append(((this.successData == null)?"<null>":this.successData));
+        sb.append(',');
+        sb.append("errorData");
+        sb.append('=');
+        sb.append(((this.errorData == null)?"<null>":this.errorData));
         sb.append(',');
         if (sb.charAt((sb.length()- 1)) == ',') {
             sb.setCharAt((sb.length()- 1), ']');
@@ -111,8 +163,9 @@ public class PaymentResponseDto {
     @Override
     public int hashCode() {
         int result = 1;
+        result = ((result* 31)+((this.successData == null)? 0 :this.successData.hashCode()));
         result = ((result* 31)+((this.paymentId == null)? 0 :this.paymentId.hashCode()));
-        result = ((result* 31)+((this.additionalProperties == null)? 0 :this.additionalProperties.hashCode()));
+        result = ((result* 31)+((this.errorData == null)? 0 :this.errorData.hashCode()));
         return result;
     }
 
@@ -125,7 +178,7 @@ public class PaymentResponseDto {
             return false;
         }
         PaymentResponseDto rhs = ((PaymentResponseDto) other);
-        return (((this.paymentId == rhs.paymentId)||((this.paymentId!= null)&&this.paymentId.equals(rhs.paymentId)))&&((this.additionalProperties == rhs.additionalProperties)||((this.additionalProperties!= null)&&this.additionalProperties.equals(rhs.additionalProperties))));
+        return ((((this.successData == rhs.successData)||((this.successData!= null)&&this.successData.equals(rhs.successData)))&&((this.paymentId == rhs.paymentId)||((this.paymentId!= null)&&this.paymentId.equals(rhs.paymentId))))&&((this.errorData == rhs.errorData)||((this.errorData!= null)&&this.errorData.equals(rhs.errorData))));
     }
 
 }

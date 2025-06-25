@@ -32,7 +32,6 @@ public class KafkaConfig {
     @Value("${app.kafka.consumer.payment-execution-response-group}")
     private String paymentExecutionResponseConsumerGroup;
 
-    // Producer Configuration
     @Bean
     public ProducerFactory<String, Object> producerFactory() {
         Map<String, Object> configProps = new HashMap<>();
@@ -47,7 +46,6 @@ public class KafkaConfig {
         return new KafkaTemplate<>(producerFactory());
     }
 
-    // Consumer Configuration for PaymentRequestDto
     @Bean
     public ConsumerFactory<String, PaymentRequestDto> paymentRequestConsumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -71,7 +69,6 @@ public class KafkaConfig {
         return factory;
     }
 
-    // Consumer Configuration for PaymentResponseDto
     @Bean
     public ConsumerFactory<String, PaymentResponseDto> paymentResponseConsumerFactory() {
         Map<String, Object> props = new HashMap<>();

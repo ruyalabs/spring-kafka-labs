@@ -8,33 +8,24 @@
     "paymentId": {
       "type": "string",
       "description": "Unique identifier for the payment request"
+    },
+    "successData": {
+      "$ref": "SuccessDataDto.json",
+      "description": "Success data when payment processing succeeds"
+    },
+    "errorData": {
+      "$ref": "ErrorDataDto.json",
+      "description": "Error data when payment processing fails"
     }
   },
   "required": ["paymentId"],
+  "additionalProperties": false,
   "oneOf": [
     {
-      "properties": {
-        "paymentId": {
-          "type": "string"
-        },
-        "successData": {
-          "$ref": "SuccessDataDto.json"
-        }
-      },
-      "required": ["paymentId", "successData"],
-      "additionalProperties": false
+      "required": ["paymentId", "successData"]
     },
     {
-      "properties": {
-        "paymentId": {
-          "type": "string"
-        },
-        "errorData": {
-          "$ref": "ErrorDataDto.json"
-        }
-      },
-      "required": ["paymentId", "errorData"],
-      "additionalProperties": false
+      "required": ["paymentId", "errorData"]
     }
   ]
 }

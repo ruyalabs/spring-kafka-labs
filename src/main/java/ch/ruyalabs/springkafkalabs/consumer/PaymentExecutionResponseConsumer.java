@@ -37,20 +37,16 @@ public class PaymentExecutionResponseConsumer {
                 paymentResponse.getPaymentId(), topic, partition, offset);
 
         try {
-            // Forward the response to the final payment-response topic
             kafkaTemplate.send(paymentResponseTopic, paymentResponse.getPaymentId(), paymentResponse);
             log.info("Successfully forwarded payment response to final topic: paymentId={}", 
                     paymentResponse.getPaymentId());
 
-            // Acknowledge the message after successful processing
             acknowledgment.acknowledge();
 
         } catch (Exception exception) {
             log.error("Failed to forward payment execution response: paymentId={}, error={}", 
                     paymentResponse.getPaymentId(), exception.getMessage(), exception);
 
-            // In this case, we still acknowledge to prevent infinite reprocessing
-            // The external system is assumed to be reliable, so this should be rare
             acknowledgment.acknowledge();
         }
     }
