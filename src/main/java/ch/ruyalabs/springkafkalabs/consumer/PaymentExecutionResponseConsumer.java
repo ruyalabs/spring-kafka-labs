@@ -1,11 +1,11 @@
 package ch.ruyalabs.springkafkalabs.consumer;
 
 import ch.ruyalabs.springkafkalabs.dto.PaymentResponseDto;
+import ch.ruyalabs.springkafkalabs.service.ReliableResponseProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PaymentExecutionResponseConsumer {
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final ReliableResponseProducer reliableResponseProducer;
 
     @Value("${app.kafka.topics.payment-response}")
     private String paymentResponseTopic;
@@ -36,18 +36,8 @@ public class PaymentExecutionResponseConsumer {
         log.info("Received payment execution response: paymentId={}, topic={}, partition={}, offset={}", 
                 paymentResponse.getPaymentId(), topic, partition, offset);
 
-        try {
-            kafkaTemplate.send(paymentResponseTopic, paymentResponse.getPaymentId(), paymentResponse);
-            log.info("Successfully forwarded payment response to final topic: paymentId={}", 
-                    paymentResponse.getPaymentId());
+        reliableResponseProducer.sendResponse(paymentResponseTopic, paymentResponse.getPaymentId(), paymentResponse);
 
-            acknowledgment.acknowledge();
-
-        } catch (Exception exception) {
-            log.error("Failed to forward payment execution response: paymentId={}, error={}", 
-                    paymentResponse.getPaymentId(), exception.getMessage(), exception);
-
-            acknowledgment.acknowledge();
-        }
+        acknowledgment.acknowledge();
     }
 }

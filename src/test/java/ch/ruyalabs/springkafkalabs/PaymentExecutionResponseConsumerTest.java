@@ -4,12 +4,12 @@ import ch.ruyalabs.springkafkalabs.consumer.PaymentExecutionResponseConsumer;
 import ch.ruyalabs.springkafkalabs.dto.ErrorDataDto;
 import ch.ruyalabs.springkafkalabs.dto.PaymentResponseDto;
 import ch.ruyalabs.springkafkalabs.dto.SuccessDataDto;
+import ch.ruyalabs.springkafkalabs.service.ReliableResponseProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 public class PaymentExecutionResponseConsumerTest {
 
     @Mock
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private ReliableResponseProducer reliableResponseProducer;
 
     @Mock
     private Acknowledgment acknowledgment;
@@ -33,7 +33,7 @@ public class PaymentExecutionResponseConsumerTest {
 
     @BeforeEach
     void setUp() {
-        paymentExecutionResponseConsumer = new PaymentExecutionResponseConsumer(kafkaTemplate);
+        paymentExecutionResponseConsumer = new PaymentExecutionResponseConsumer(reliableResponseProducer);
 
         // Set the topic name using reflection since it's @Value injected
         ReflectionTestUtils.setField(paymentExecutionResponseConsumer, "paymentResponseTopic", "payment-response");
@@ -48,7 +48,7 @@ public class PaymentExecutionResponseConsumerTest {
         paymentExecutionResponseConsumer.consume(successResponse, "payment-execution-response", 0, 123L, acknowledgment);
 
         // Then
-        verify(kafkaTemplate).send(eq("payment-response"), eq("test-payment-001"), eq(successResponse));
+        verify(reliableResponseProducer).sendResponse(eq("payment-response"), eq("test-payment-001"), eq(successResponse));
         verify(acknowledgment).acknowledge();
     }
 
@@ -61,23 +61,10 @@ public class PaymentExecutionResponseConsumerTest {
         paymentExecutionResponseConsumer.consume(errorResponse, "payment-execution-response", 0, 124L, acknowledgment);
 
         // Then
-        verify(kafkaTemplate).send(eq("payment-response"), eq("test-payment-error"), eq(errorResponse));
+        verify(reliableResponseProducer).sendResponse(eq("payment-response"), eq("test-payment-error"), eq(errorResponse));
         verify(acknowledgment).acknowledge();
     }
 
-    @Test
-    void testKafkaProducerFailureHandling() {
-        // Given
-        PaymentResponseDto response = createSuccessResponse("test-payment-failure");
-        doThrow(new RuntimeException("Kafka producer failure")).when(kafkaTemplate).send(anyString(), anyString(), any());
-
-        // When
-        paymentExecutionResponseConsumer.consume(response, "payment-execution-response", 0, 125L, acknowledgment);
-
-        // Then
-        // Even if forwarding fails, the message should still be acknowledged to prevent infinite reprocessing
-        verify(acknowledgment).acknowledge();
-    }
 
     private PaymentResponseDto createSuccessResponse(String paymentId) {
         SuccessDataDto successData = new SuccessDataDto();

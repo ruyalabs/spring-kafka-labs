@@ -3,6 +3,7 @@ package ch.ruyalabs.springkafkalabs;
 import ch.ruyalabs.springkafkalabs.consumer.PaymentRequestConsumer;
 import ch.ruyalabs.springkafkalabs.dto.PaymentRequestDto;
 import ch.ruyalabs.springkafkalabs.service.MailService;
+import ch.ruyalabs.springkafkalabs.service.ReliableResponseProducer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,14 +26,17 @@ public class PaymentRequestConsumerTest {
     private MailService mailService;
 
     @Mock
+    private ReliableResponseProducer reliableResponseProducer;
+
+    @Mock
     private Acknowledgment acknowledgment;
 
     private PaymentRequestConsumer paymentRequestConsumer;
 
     @BeforeEach
     void setUp() {
-        paymentRequestConsumer = new PaymentRequestConsumer(kafkaTemplate, mailService);
-        
+        paymentRequestConsumer = new PaymentRequestConsumer(kafkaTemplate, mailService, reliableResponseProducer);
+
         // Set the topic names using reflection since they're @Value injected
         ReflectionTestUtils.setField(paymentRequestConsumer, "paymentExecutionRequestTopic", "payment-execution-request");
         ReflectionTestUtils.setField(paymentRequestConsumer, "paymentResponseTopic", "payment-response");
@@ -61,9 +65,9 @@ public class PaymentRequestConsumerTest {
         paymentRequestConsumer.consume(faultyRequest, "payment-request", 0, 123L, acknowledgment);
 
         // Then
-        verify(kafkaTemplate).send(eq("payment-response"), eq("test-payment-faulty"), any());
+        verify(reliableResponseProducer).sendResponse(eq("payment-response"), eq("test-payment-faulty"), any());
         verify(acknowledgment).acknowledge();
-        verifyNoInteractions(mailService);
+        verifyNoInteractions(kafkaTemplate); // Error handling should not use kafkaTemplate directly
     }
 
     @Test
@@ -75,24 +79,11 @@ public class PaymentRequestConsumerTest {
         paymentRequestConsumer.consume(invalidRequest, "payment-request", 0, 123L, acknowledgment);
 
         // Then
-        verify(kafkaTemplate).send(eq("payment-response"), eq("test-payment-invalid"), any());
+        verify(reliableResponseProducer).sendResponse(eq("payment-response"), eq("test-payment-invalid"), any());
         verify(acknowledgment).acknowledge();
-        verifyNoInteractions(mailService);
+        verifyNoInteractions(kafkaTemplate); // Error handling should not use kafkaTemplate directly
     }
 
-    @Test
-    void testKafkaProducerFailureFallback() {
-        // Given
-        PaymentRequestDto faultyRequest = createFaultyPaymentRequest();
-        doThrow(new RuntimeException("Kafka producer failure")).when(kafkaTemplate).send(anyString(), anyString(), any());
-
-        // When
-        paymentRequestConsumer.consume(faultyRequest, "payment-request", 0, 123L, acknowledgment);
-
-        // Then
-        verify(mailService).sendOperationsNotification(eq("test-payment-faulty"), anyString(), any(Exception.class));
-        verify(acknowledgment).acknowledge();
-    }
 
     private PaymentRequestDto createValidPaymentRequest() {
         PaymentRequestDto request = new PaymentRequestDto();

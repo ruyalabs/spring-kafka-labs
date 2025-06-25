@@ -9,6 +9,7 @@ import ch.ruyalabs.springkafkalabs.exception.InvalidCurrencyException;
 import ch.ruyalabs.springkafkalabs.exception.MissingPaymentIdException;
 import ch.ruyalabs.springkafkalabs.exception.PaymentValidationException;
 import ch.ruyalabs.springkafkalabs.service.MailService;
+import ch.ruyalabs.springkafkalabs.service.ReliableResponseProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +34,7 @@ public class PaymentRequestConsumer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final MailService mailService;
+    private final ReliableResponseProducer reliableResponseProducer;
 
     @Value("${app.kafka.topics.payment-execution-request}")
     private String paymentExecutionRequestTopic;
@@ -102,22 +104,11 @@ public class PaymentRequestConsumer {
      * If sending the error response fails, triggers the ultimate fallback mechanism.
      */
     private void handlePaymentError(String paymentId, Exception exception, Acknowledgment acknowledgment) {
-        try {
-            PaymentResponseDto errorResponse = createErrorResponse(paymentId, exception);
+        PaymentResponseDto errorResponse = createErrorResponse(paymentId, exception);
 
-            kafkaTemplate.send(paymentResponseTopic, paymentId, errorResponse);
-            log.info("Successfully sent error response to payment-response topic: paymentId={}", paymentId);
+        reliableResponseProducer.sendResponse(paymentResponseTopic, paymentId, errorResponse);
 
-            acknowledgment.acknowledge();
-
-        } catch (Exception fallbackException) {
-            log.error("Failed to send error response to payment-response topic: paymentId={}, fallbackError={}", 
-                    paymentId, fallbackException.getMessage(), fallbackException);
-
-            triggerUltimateFallback(paymentId, exception, fallbackException);
-
-            acknowledgment.acknowledge();
-        }
+        acknowledgment.acknowledge();
     }
 
     /**
@@ -159,17 +150,4 @@ public class PaymentRequestConsumer {
         }
     }
 
-    /**
-     * Triggers the ultimate fallback mechanism when all other error handling fails.
-     */
-    private void triggerUltimateFallback(String paymentId, Exception originalException, Exception fallbackException) {
-        String errorMessage = String.format(
-            "Failed to process payment request and unable to send error response. " +
-            "Original error: %s, Fallback error: %s",
-            originalException.getMessage(),
-            fallbackException.getMessage()
-        );
-
-        mailService.sendOperationsNotification(paymentId, errorMessage, originalException);
-    }
 }

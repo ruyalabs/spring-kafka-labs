@@ -85,7 +85,7 @@
                 <configuration>
                     <sourceDirectory>${basedir}/src/main/resources/schemas</sourceDirectory>
                     <targetPackage>ch.ruyalabs.springkafkalabs.dto</targetPackage>
-                    <outputDirectory>${basedir}/src/main/java</outputDirectory>
+                    <outputDirectory>${project.build.directory}/generated-sources/java</outputDirectory>
                     <annotationStyle>jackson2</annotationStyle>
                     <includeJsr303Annotations>true</includeJsr303Annotations>
                     <useJakartaValidation>true</useJakartaValidation>
@@ -103,6 +103,25 @@
                         <goals>
                             <goal>generate</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/java</source>
+                            </sources>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
