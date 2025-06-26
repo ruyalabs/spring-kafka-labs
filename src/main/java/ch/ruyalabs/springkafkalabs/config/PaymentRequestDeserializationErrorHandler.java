@@ -30,29 +30,31 @@ public class PaymentRequestDeserializationErrorHandler extends DefaultErrorHandl
     private String paymentResponseTopic;
 
     @Override
-    public void handleRemaining(Exception thrownException, 
-                               java.util.List<ConsumerRecord<?, ?>> records, 
-                               Consumer<?, ?> consumer, 
-                               org.springframework.kafka.listener.MessageListenerContainer container) {
-        
-        log.error("Handling deserialization error for {} records", records.size(), thrownException);
-        
-        for (ConsumerRecord<?, ?> record : records) {
-            handleSingleRecord(thrownException, record);
+    public void handleRemaining(Exception thrownException,
+                                java.util.List<ConsumerRecord<?, ?>> records,
+                                Consumer<?, ?> consumer,
+                                org.springframework.kafka.listener.MessageListenerContainer container) {
+
+        if (thrownException.getCause() instanceof DeserializationException) {
+            log.error("Handling deserialization error for {} records", records.size(), thrownException);
+
+            for (ConsumerRecord<?, ?> record : records) {
+                handleSingleRecord(thrownException, record);
+            }
+        } else {
+            // Let the DefaultErrorHandler handle other exceptions
+            super.handleRemaining(thrownException, records, consumer, container);
         }
-        
-        // Call parent to handle offset commits
-        super.handleRemaining(thrownException, records, consumer, container);
     }
 
     private void handleSingleRecord(Exception thrownException, ConsumerRecord<?, ?> record) {
         String paymentId = extractPaymentId(record);
-        
-        log.error("Processing deserialization error for record: topic={}, partition={}, offset={}, paymentId={}", 
+
+        log.error("Processing deserialization error for record: topic={}, partition={}, offset={}, paymentId={}",
                 record.topic(), record.partition(), record.offset(), paymentId, thrownException);
 
         PaymentResponseDto errorResponse = createDeserializationErrorResponse(paymentId, thrownException);
-        
+
         try {
             reliableResponseProducer.sendResponse(paymentResponseTopic, paymentId, errorResponse);
             log.info("Successfully sent deserialization error response: paymentId={}", paymentId);
@@ -82,7 +84,7 @@ public class PaymentRequestDeserializationErrorHandler extends DefaultErrorHandl
 
             JsonNode jsonNode = objectMapper.readTree(jsonString);
             JsonNode paymentIdNode = jsonNode.get("paymentId");
-            
+
             if (paymentIdNode != null && !paymentIdNode.isNull()) {
                 String paymentId = paymentIdNode.asText();
                 log.debug("Successfully extracted paymentId: {}", paymentId);
@@ -91,7 +93,7 @@ public class PaymentRequestDeserializationErrorHandler extends DefaultErrorHandl
                 log.warn("PaymentId field not found in message, using UNKNOWN");
                 return "UNKNOWN";
             }
-            
+
         } catch (Exception exception) {
             log.warn("Failed to extract paymentId from malformed message: {}", exception.getMessage());
             return "UNKNOWN";
@@ -102,8 +104,8 @@ public class PaymentRequestDeserializationErrorHandler extends DefaultErrorHandl
         ErrorDataDto errorData = new ErrorDataDto();
         errorData.setErrorCode("DESERIALIZATION_ERROR");
         errorData.setErrorMessage("The payment request could not be parsed due to invalid format or structure");
-        errorData.setErrorDetails(String.format("Exception type: %s, Message: %s", 
-                exception.getClass().getSimpleName(), 
+        errorData.setErrorDetails(String.format("Exception type: %s, Message: %s",
+                exception.getClass().getSimpleName(),
                 exception.getMessage()));
         errorData.setOccurredAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()));
 
