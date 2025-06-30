@@ -33,6 +33,7 @@
       "type": "string"
     },
     "amount": {
+      "title": "DisbursedAmount",
       "description": "The amount and currency that was disbursed.",
       "type": "object",
       "properties": {

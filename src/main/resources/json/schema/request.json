@@ -11,6 +11,7 @@
       "format": "uuid"
     },
     "recipient": {
+      "title": "PaymentRecipient",
       "description": "Details of the person or entity receiving the payment.",
       "type": "object",
       "properties": {
@@ -25,6 +26,7 @@
           "format": "email"
         },
         "bankDetails": {
+          "title": "BankAccountDetails",
           "description": "Recipient's bank account information.",
           "type": "object",
           "properties": {
@@ -55,6 +57,7 @@
       ]
     },
     "amount": {
+      "title": "PaymentAmount",
       "description": "The amount and currency of the disbursement.",
       "type": "object",
       "properties": {
@@ -89,6 +92,7 @@
       "format": "date-time"
     },
     "metadata": {
+      "title": "PaymentMetadata",
       "description": "An object for any additional, non-essential data.",
       "type": "object",
       "additionalProperties": true

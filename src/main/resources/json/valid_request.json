@@ -1,0 +1,22 @@
+{
+  "disbursementId": "4a7c6a5a-4d72-4c2c-a1d2-7e3a2b1c8d7e",
+  "recipient": {
+    "name": "Jane Doe",
+    "email": "jane.doe@example.com",
+    "bankDetails": {
+      "accountNumber": "1234567890",
+      "sortCode": "11-22-33",
+      "iban": "GB29NWBK60161331926819"
+    }
+  },
+  "amount": {
+    "value": 1500.75,
+    "currency": "USD"
+  },
+  "paymentMethod": "bank_transfer",
+  "requestedAt": "2025-07-21T14:30:00Z",
+  "metadata": {
+    "internalReference": "TXN-12345-ABC",
+    "notes": "Monthly salary payment."
+  }
+}

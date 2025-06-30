@@ -1,0 +1,10 @@
+{
+  "disbursementId": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+  "status": "processed",
+  "processedAt": "2025-06-29T10:30:00Z",
+  "transactionId": "txn_1234567890",
+  "amount": {
+    "value": 150.75,
+    "currency": "USD"
+  }
+}
