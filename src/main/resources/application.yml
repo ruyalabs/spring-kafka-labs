@@ -2,7 +2,7 @@ spring:
   application:
     name: spring-kafka-labs
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: localhost:29092,localhost:29093,localhost:29094
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.cloudevents.kafka.CloudEventSerializer
