@@ -40,7 +40,7 @@ public class PaymentRequestProducer {
                     .withId(UUID.randomUUID().toString())
                     .withSource(URI.create("payment-service"))
                     .withType("com.ruyalabs.payment.disbursement.request")
-                    .withDataContentType("application/json") // This describes the data within the CloudEvent
+                    .withDataContentType("application/cloudevents+json; charset=UTF-8")
                     .withTime(OffsetDateTime.now())
                     .withData(requestData)
                     .build();
