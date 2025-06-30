@@ -1,3 +1,19 @@
 spring:
   application:
     name: spring-kafka-labs
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.cloudevents.kafka.CloudEventSerializer
+    consumer:
+      group-id: payment-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
+      auto-offset-reset: earliest
+
+payment:
+  kafka:
+    topics:
+      request: payment-requests
+      response: payment-responses
