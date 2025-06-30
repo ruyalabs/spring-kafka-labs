@@ -3,11 +3,6 @@ spring:
     name: spring-kafka-labs
   kafka:
     bootstrap-servers: localhost:29092,localhost:29093,localhost:29094
-    consumer:
-      group-id: payment-service
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: io.cloudevents.kafka.CloudEventDeserializer
-      auto-offset-reset: earliest
 
 payment:
   kafka:

@@ -1,6 +1,8 @@
 package ch.ruyalabs.springkafkalabs.config;
 
 import io.cloudevents.CloudEvent;
+import io.cloudevents.core.message.Encoding;
+import io.cloudevents.jackson.JsonFormat;
 import io.cloudevents.kafka.CloudEventSerializer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -28,13 +30,11 @@ public class KafkaProducerConfig {
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, CloudEventSerializer.class);
 
-        configProps.put("io.cloudevents.kafka.encoding", "structured");
+        configProps.put(CloudEventSerializer.ENCODING_CONFIG, Encoding.STRUCTURED);
+        configProps.put(CloudEventSerializer.EVENT_FORMAT_CONFIG, JsonFormat.CONTENT_TYPE);
 
+        // Essential reliability configurations
         configProps.put(ProducerConfig.ACKS_CONFIG, "all");
-        configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
-        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384);
-        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 1);
-        configProps.put(ProducerConfig.BUFFER_MEMORY_CONFIG, 33554432);
         configProps.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
         return new DefaultKafkaProducerFactory<>(configProps);
