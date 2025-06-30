@@ -3,8 +3,11 @@ package ch.ruyalabs.springkafkalabs.kafka.producer;
 import ch.ruyalabs.types.PaymentDisbursementRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
+import io.cloudevents.CloudEventData;
+import io.cloudevents.core.CloudEventUtils;
 import io.cloudevents.core.builder.CloudEventBuilder;
-
+import io.cloudevents.core.data.PojoCloudEventData;
+import io.cloudevents.jackson.PojoCloudEventDataMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,24 +28,25 @@ public class PaymentRequestProducer {
     private final ObjectMapper objectMapper;
 
     public PaymentRequestProducer(KafkaTemplate<String, CloudEvent> kafkaTemplate,
-                                  @Value("${payment.kafka.topics.request}") String topicName) {
+                                  @Value("${payment.kafka.topics.request}") String topicName, ObjectMapper objectMapper) {
         this.kafkaTemplate = kafkaTemplate;
         this.topicName = topicName;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
 
     public void sendPaymentRequest(PaymentDisbursementRequest request) {
         try {
-            byte[] requestData = objectMapper.writeValueAsBytes(request);
+            PojoCloudEventData<PaymentDisbursementRequest> wrapped =
+                    PojoCloudEventData.wrap(request, objectMapper::writeValueAsBytes);
 
             CloudEvent cloudEvent = CloudEventBuilder.v1()
                     .withId(UUID.randomUUID().toString())
                     .withSource(URI.create("payment-service"))
                     .withType("com.ruyalabs.payment.disbursement.request")
-                    .withDataContentType("application/cloudevents+json; charset=UTF-8")
+                    .withDataContentType("application/json")
                     .withTime(OffsetDateTime.now())
-                    .withData(requestData)
+                    .withData(wrapped)
                     .build();
 
             String key = request.getDisbursementId().toString();
