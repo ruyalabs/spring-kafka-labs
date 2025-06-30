@@ -4,6 +4,7 @@ import ch.ruyalabs.types.PaymentDisbursementRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +31,7 @@ public class PaymentRequestProducer {
         this.objectMapper = new ObjectMapper();
     }
 
+
     public void sendPaymentRequest(PaymentDisbursementRequest request) {
         try {
             byte[] requestData = objectMapper.writeValueAsBytes(request);
@@ -38,7 +40,7 @@ public class PaymentRequestProducer {
                     .withId(UUID.randomUUID().toString())
                     .withSource(URI.create("payment-service"))
                     .withType("com.ruyalabs.payment.disbursement.request")
-                    .withDataContentType("application/json")
+                    .withDataContentType("application/json") // This describes the data within the CloudEvent
                     .withTime(OffsetDateTime.now())
                     .withData(requestData)
                     .build();
@@ -61,5 +63,4 @@ public class PaymentRequestProducer {
             throw new RuntimeException("Failed to send payment request", e);
         }
     }
-
 }
