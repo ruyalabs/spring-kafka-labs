@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/payment-disbursement-response.json",
+  "title": "Payment Disbursement Response",
+  "description": "A schema for a response to a payment disbursement request.",
+  "type": "object",
+  "properties": {
+    "disbursementId": {
+      "description": "The unique identifier for the original disbursement request.",
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "description": "The final status of the disbursement.",
+      "type": "string",
+      "enum": [
+        "processed",
+        "failed",
+        "pending"
+      ]
+    },
+    "processedAt": {
+      "description": "The date and time the disbursement was processed.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "transactionId": {
+      "description": "The unique identifier for the financial transaction, if successful.",
+      "type": "string"
+    },
+    "failureReason": {
+      "description": "A message explaining why the disbursement failed, if applicable.",
+      "type": "string"
+    },
+    "amount": {
+      "description": "The amount and currency that was disbursed.",
+      "type": "object",
+      "properties": {
+        "value": {
+          "description": "The numeric value of the amount.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "currency": {
+          "description": "The 3-letter ISO currency code.",
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        }
+      },
+      "required": [
+        "value",
+        "currency"
+      ]
+    }
+  },
+  "required": [
+    "disbursementId",
+    "status",
+    "processedAt",
+    "amount"
+  ]
+}
