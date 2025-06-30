@@ -48,16 +48,16 @@ public class PaymentRequestProducer {
             kafkaTemplate.send(topicName, key, cloudEvent)
                     .whenComplete((result, ex) -> {
                         if (ex == null) {
-                            logger.info("Payment request sent successfully for disbursementId: {}", 
-                                      request.getDisbursementId());
+                            logger.info("Payment request sent successfully for disbursementId: {}",
+                                    request.getDisbursementId());
                         } else {
-                            logger.error("Failed to send payment request for disbursementId: {}", 
-                                       request.getDisbursementId(), ex);
+                            logger.error("Failed to send payment request for disbursementId: {}",
+                                    request.getDisbursementId(), ex);
                         }
                     });
         } catch (Exception e) {
-            logger.error("Error creating CloudEvent for payment request: {}", 
-                       request.getDisbursementId(), e);
+            logger.error("Error creating CloudEvent for payment request: {}",
+                    request.getDisbursementId(), e);
             throw new RuntimeException("Failed to send payment request", e);
         }
     }

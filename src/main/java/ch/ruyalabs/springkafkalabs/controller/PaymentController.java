@@ -31,7 +31,6 @@ public class PaymentController {
     @PostMapping("/trigger")
     public ResponseEntity<String> triggerPaymentRequest(HttpServletRequest httpRequest) {
         try {
-            // Log all HTTP headers
             logAllHttpHeaders(httpRequest);
 
             PaymentDisbursementRequest request = createDummyPaymentRequest();
@@ -84,8 +83,7 @@ public class PaymentController {
             });
         });
 
-        // Also log some additional request information
-        logger.info("Request Info - Remote Address: {}, User Agent: {}, Content Type: {}", 
+        logger.info("Request Info - Remote Address: {}, User Agent: {}, Content Type: {}",
                    httpRequest.getRemoteAddr(), 
                    httpRequest.getHeader("User-Agent"), 
                    httpRequest.getContentType());

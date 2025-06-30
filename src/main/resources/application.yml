@@ -6,6 +6,9 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.cloudevents.kafka.CloudEventSerializer
+      properties:
+        io.cloudevents.kafka.encoding: structured
+        io.cloudevents.kafka.event_format: application/cloudevents+json
     consumer:
       group-id: payment-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
