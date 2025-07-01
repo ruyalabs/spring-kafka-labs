@@ -26,7 +26,7 @@ public class PaymentResponseConsumer {
         try {
             CloudEvent cloudEvent = record.value();
 
-            //
+            // Handle deserialization errors - cloudEvent will be null if deserialization failed
             if (cloudEvent == null) {
                 logger.error("Received message with deserialization error from topic: {}, partition: {}, offset: {}, key: {}", 
                     record.topic(), record.partition(), record.offset(), record.key());
