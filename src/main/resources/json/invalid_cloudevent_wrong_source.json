@@ -1,0 +1,24 @@
+{
+  "specversion": "1.0",
+  "type": "com.ruyalabs.payment.disbursement.request",
+  "source": "unauthorized-service",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "time": "2023-12-01T10:30:00Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "disbursementId": "550e8400-e29b-41d4-a716-446655440000",
+    "recipient": {
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "bankDetails": {
+        "accountNumber": "12345678901"
+      }
+    },
+    "amount": {
+      "value": 100.50,
+      "currency": "USD"
+    },
+    "paymentMethod": "bank_transfer",
+    "requestedAt": "2023-12-01T10:30:00Z"
+  }
+}

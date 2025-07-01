@@ -1,0 +1,18 @@
+{
+  "specversion": "1.0",
+  "type": "com.ruyalabs.payment.disbursement.request",
+  "source": "payment-2-service",
+  "id": "550e8400-e29b-41d4-a716-446655440001",
+  "time": "2023-12-01T10:35:00Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "disbursementId": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "processed",
+    "processedAt": "2023-12-01T10:35:00Z",
+    "transactionId": "txn_123456789",
+    "amount": {
+      "value": 100.50,
+      "currency": "USD"
+    }
+  }
+}

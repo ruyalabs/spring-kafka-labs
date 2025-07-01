@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/cloudevent-payment-disbursement-request.json",
+  "title": "CloudEvent Payment Disbursement Request",
+  "description": "A CloudEvent schema for payment disbursement requests with restricted type and source attributes.",
+  "type": "object",
+  "properties": {
+    "specversion": {
+      "description": "The version of the CloudEvents specification which the event uses.",
+      "type": "string",
+      "const": "1.0"
+    },
+    "type": {
+      "description": "The type of event related to the originating occurrence.",
+      "type": "string",
+      "const": "com.ruyalabs.payment.disbursement.request"
+    },
+    "source": {
+      "description": "The context in which an event happened.",
+      "type": "string",
+      "enum": [
+        "payment-service",
+        "payment-2-service"
+      ]
+    },
+    "id": {
+      "description": "An identifier for the event.",
+      "type": "string",
+      "minLength": 1
+    },
+    "time": {
+      "description": "Timestamp of when the occurrence happened.",
+      "type": "string",
+      "format": "date-time"
+    },
+    "datacontenttype": {
+      "description": "Content type of the data value.",
+      "type": "string",
+      "const": "application/json"
+    },
+    "data": {
+      "description": "The event payload - a payment disbursement request.",
+      "$ref": "request-schema.json"
+    },
+    "subject": {
+      "description": "The subject of the event in the context of the event producer.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "specversion",
+    "type",
+    "source",
+    "id",
+    "data"
+  ],
+  "additionalProperties": false
+}

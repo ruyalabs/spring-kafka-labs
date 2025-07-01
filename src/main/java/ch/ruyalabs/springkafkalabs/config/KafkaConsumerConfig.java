@@ -34,8 +34,6 @@ public class KafkaConsumerConfig {
         configProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, CloudEventDeserializer.class);
         configProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        // CloudEventDeserializer automatically handles structured mode
-
         return new DefaultKafkaConsumerFactory<>(configProps);
     }
 

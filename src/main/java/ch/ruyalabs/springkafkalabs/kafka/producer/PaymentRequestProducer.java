@@ -23,6 +23,10 @@ public class PaymentRequestProducer {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentRequestProducer.class);
 
+    private static final String CLOUD_EVENT_SOURCE = "payment-service";
+    private static final String CLOUD_EVENT_TYPE = "com.ruyalabs.payment.disbursement.request";
+    private static final String CLOUD_EVENT_DATA_CONTENT_TYPE = "application/json";
+
     private final KafkaTemplate<String, CloudEvent> kafkaTemplate;
     private final String topicName;
     private final ObjectMapper objectMapper;
@@ -42,9 +46,9 @@ public class PaymentRequestProducer {
 
             CloudEvent cloudEvent = CloudEventBuilder.v1()
                     .withId(UUID.randomUUID().toString())
-                    .withSource(URI.create("payment-service"))
-                    .withType("com.ruyalabs.payment.disbursement.request")
-                    .withDataContentType("application/json")
+                    .withSource(URI.create(CLOUD_EVENT_SOURCE))
+                    .withType(CLOUD_EVENT_TYPE)
+                    .withDataContentType(CLOUD_EVENT_DATA_CONTENT_TYPE)
                     .withTime(OffsetDateTime.now())
                     .withData(wrapped)
                     .build();
