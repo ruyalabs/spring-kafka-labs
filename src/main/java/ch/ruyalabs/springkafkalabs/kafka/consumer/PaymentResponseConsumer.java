@@ -26,6 +26,18 @@ public class PaymentResponseConsumer {
         try {
             CloudEvent cloudEvent = record.value();
 
+            //
+            if (cloudEvent == null) {
+                logger.error("Received message with deserialization error from topic: {}, partition: {}, offset: {}, key: {}", 
+                    record.topic(), record.partition(), record.offset(), record.key());
+
+                // Log specific Spring Kafka ErrorHandlingDeserializer headers
+                logDeserializationErrorHeaders(record);
+
+                // Skip processing this message but continue with the next one
+                return;
+            }
+
             logAllHeaders(record);
 
             logger.info("Received CloudEvent with ID: {}, Type: {}, Source: {}", 
@@ -45,7 +57,41 @@ public class PaymentResponseConsumer {
                 logger.warn("Received CloudEvent with no data");
             }
         } catch (Exception e) {
-            logger.error("Error processing payment response CloudEvent: {}", record.value() != null ? record.value().getId() : "unknown", e);
+            logger.error("Error processing payment response CloudEvent from topic: {}, partition: {}, offset: {}, key: {}, error: {}", 
+                record.topic(), record.partition(), record.offset(), record.key(), e.getMessage(), e);
+        }
+    }
+
+    private void logDeserializationErrorHeaders(ConsumerRecord<String, CloudEvent> record) {
+        if (record.headers() != null) {
+            // Log standard Spring Kafka ErrorHandlingDeserializer headers
+            logSpecificErrorHeader(record, "spring.deserializer.exception.message", "Exception Message");
+            logSpecificErrorHeader(record, "spring.deserializer.exception.stacktrace", "Exception Stacktrace");
+            logSpecificErrorHeader(record, "spring.deserializer.exception.fqcn", "Exception Class");
+            logSpecificErrorHeader(record, "spring.deserializer.key.exception.message", "Key Exception Message");
+            logSpecificErrorHeader(record, "spring.deserializer.key.exception.stacktrace", "Key Exception Stacktrace");
+            logSpecificErrorHeader(record, "spring.deserializer.key.exception.fqcn", "Key Exception Class");
+            logSpecificErrorHeader(record, "spring.deserializer.value.exception.message", "Value Exception Message");
+            logSpecificErrorHeader(record, "spring.deserializer.value.exception.stacktrace", "Value Exception Stacktrace");
+            logSpecificErrorHeader(record, "spring.deserializer.value.exception.fqcn", "Value Exception Class");
+
+            // Log any other headers that might contain error information
+            record.headers().forEach(header -> {
+                String headerKey = header.key();
+                if ((headerKey.contains("deserializer") || headerKey.contains("error")) && 
+                    !headerKey.startsWith("spring.deserializer.")) {
+                    String headerValue = header.value() != null ? new String(header.value()) : "null";
+                    logger.error("Additional deserialization error header - {}: {}", headerKey, headerValue);
+                }
+            });
+        }
+    }
+
+    private void logSpecificErrorHeader(ConsumerRecord<String, CloudEvent> record, String headerKey, String description) {
+        Header header = record.headers().lastHeader(headerKey);
+        if (header != null && header.value() != null) {
+            String headerValue = new String(header.value());
+            logger.error("Deserialization error - {}: {}", description, headerValue);
         }
     }
 
