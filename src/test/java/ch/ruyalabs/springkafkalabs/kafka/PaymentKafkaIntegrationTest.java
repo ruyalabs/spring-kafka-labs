@@ -5,6 +5,8 @@ import ch.ruyalabs.springkafkalabs.kafka.producer.PaymentRequestProducer;
 import ch.ruyalabs.types.*;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
+import io.cloudevents.core.format.EventFormat;
+import io.cloudevents.jackson.JsonFormat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -53,16 +55,23 @@ public class PaymentKafkaIntegrationTest {
 
         CloudEvent cloudEvent = CloudEventBuilder.v1()
                 .withId(UUID.randomUUID().toString())
-                .withSource(URI.create("payment-processor"))
-                .withType("com.ruyalabs.payment.disbursement.response")
+                .withSource(URI.create("payment-service"))
+                .withType("com.ruyalabs.payment.disbursement.request")
                 .withDataContentType("application/json")
                 .withTime(OffsetDateTime.now())
                 .withData(responseData)
                 .build();
 
-        // Create a ConsumerRecord to match the new method signature
-        ConsumerRecord<String, CloudEvent> consumerRecord = new ConsumerRecord<>(
-            "payment-responses", 0, 0L, "test-key", cloudEvent);
+        // Serialize CloudEvent to JSON string
+        EventFormat eventFormat = new JsonFormat();
+        String cloudEventJson = new String(eventFormat.serialize(cloudEvent));
+
+        // Create a ConsumerRecord with string value and appropriate headers
+        ConsumerRecord<String, String> consumerRecord = new ConsumerRecord<>(
+            "payment-responses", 0, 0L, "test-key", cloudEventJson);
+
+        // Add content-type header for structured mode
+        consumerRecord.headers().add("content-type", "application/cloudevents+json; charset=UTF-8".getBytes());
 
         // When & Then - Should not throw exception
         assertDoesNotThrow(() -> {

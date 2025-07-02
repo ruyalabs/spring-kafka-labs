@@ -30,8 +30,8 @@ public class DeserializerErrorHandlingTest {
 
     @Test
     public void testConsumerHandlesNullCloudEventGracefully() {
-        // Given - Create a ConsumerRecord with null CloudEvent (simulating deserialization failure)
-        ConsumerRecord<String, CloudEvent> record = new ConsumerRecord<>(
+        // Given - Create a ConsumerRecord with null string (simulating deserialization failure)
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
             "payment-responses", 0, 0L, "test-key", null);
 
         // When & Then - Should not throw exception
@@ -44,11 +44,11 @@ public class DeserializerErrorHandlingTest {
     public void testSendMalformedJsonMessage() throws Exception {
         // This test is simplified to focus on the core functionality
         // In a real scenario, malformed messages would be handled by the ErrorHandlingDeserializer
-        // and the consumer would receive null CloudEvent values
+        // and the consumer would receive null string values
 
         // Given - Simulate what happens when ErrorHandlingDeserializer encounters malformed JSON
-        ConsumerRecord<String, CloudEvent> record = new ConsumerRecord<>(
-            "payment-responses", 0, 0L, "malformed-key", null);
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
+            "payment-responses", 0, 0L, "malformed-key", "invalid json {");
 
         // When & Then - Should handle gracefully without throwing exception
         assertDoesNotThrow(() -> {
@@ -62,10 +62,10 @@ public class DeserializerErrorHandlingTest {
 
     @Test
     public void testConsumerHandlesInvalidCloudEventStructure() {
-        // Given - Create a ConsumerRecord with a CloudEvent that has invalid structure
-        // This simulates a case where CloudEvent deserialization succeeds but the data is invalid
-        ConsumerRecord<String, CloudEvent> record = new ConsumerRecord<>(
-            "payment-responses", 0, 0L, "test-key", null);
+        // Given - Create a ConsumerRecord with a string that has invalid CloudEvent structure
+        // This simulates a case where we receive a string but it's not a valid CloudEvent
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
+            "payment-responses", 0, 0L, "test-key", "{\"invalid\": \"structure\"}");
 
         // When & Then - Should handle gracefully
         assertDoesNotThrow(() -> {
@@ -75,9 +75,9 @@ public class DeserializerErrorHandlingTest {
 
     @Test
     public void testConsumerHandlesSpringKafkaErrorHeaders() {
-        // Given - Create a ConsumerRecord with null CloudEvent and Spring Kafka error headers
+        // Given - Create a ConsumerRecord with null string and Spring Kafka error headers
         // This simulates what ErrorHandlingDeserializer does when deserialization fails
-        ConsumerRecord<String, CloudEvent> record = new ConsumerRecord<>(
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
             "payment-responses", 0, 0L, "malformed-key", null);
 
         // Add standard Spring Kafka ErrorHandlingDeserializer headers
@@ -96,7 +96,7 @@ public class DeserializerErrorHandlingTest {
         });
 
         // The test verifies that:
-        // 1. The consumer doesn't crash when receiving null CloudEvent with error headers
+        // 1. The consumer doesn't crash when receiving null string with error headers
         // 2. The enhanced error logging captures and logs the Spring Kafka error headers
         // 3. Processing continues normally for subsequent messages
     }
@@ -104,7 +104,7 @@ public class DeserializerErrorHandlingTest {
     @Test
     public void testConsumerHandlesCustomErrorHeaders() {
         // Given - Create a ConsumerRecord with custom error headers
-        ConsumerRecord<String, CloudEvent> record = new ConsumerRecord<>(
+        ConsumerRecord<String, String> record = new ConsumerRecord<>(
             "payment-responses", 0, 0L, "custom-error-key", null);
 
         record.headers().add("custom.deserializer.error", "Custom deserialization error".getBytes());

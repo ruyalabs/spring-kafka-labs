@@ -3,6 +3,8 @@ package ch.ruyalabs.springkafkalabs.kafka.consumer;
 import ch.ruyalabs.types.PaymentDisbursementResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cloudevents.CloudEvent;
+import io.cloudevents.core.format.EventFormat;
+import io.cloudevents.jackson.JsonFormat;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.slf4j.Logger;
@@ -22,27 +24,43 @@ public class PaymentResponseConsumer {
     }
 
     @KafkaListener(topics = "${payment.kafka.topics.response}")
-    public void handlePaymentResponse(ConsumerRecord<String, CloudEvent> record) {
+    public void handlePaymentResponse(ConsumerRecord<String, String> record) {
         try {
-            CloudEvent cloudEvent = record.value();
+            String rawMessage = record.value();
 
-            // Handle deserialization errors - cloudEvent will be null if deserialization failed
-            if (cloudEvent == null) {
-                logger.error("Received message with deserialization error from topic: {}, partition: {}, offset: {}, key: {}", 
+            // Handle null or empty messages
+            if (rawMessage == null || rawMessage.trim().isEmpty()) {
+                logger.error("Received null or empty message from topic: {}, partition: {}, offset: {}, key: {}", 
                     record.topic(), record.partition(), record.offset(), record.key());
-
-                // Log specific Spring Kafka ErrorHandlingDeserializer headers
-                logDeserializationErrorHeaders(record);
-
-                // Skip processing this message but continue with the next one
                 return;
             }
 
-            logAllHeaders(record);
+            // Check whether the received Cloud Event has been sent in structured mode
+            if (!isStructuredMode(record)) {
+                logger.error("CloudEvent not sent in structured mode (Content-Type: application/cloudevents+json; charset=UTF-8) from topic: {}, partition: {}, offset: {}, key: {}", 
+                    record.topic(), record.partition(), record.offset(), record.key());
+                return;
+            }
+
+            // Deserialize the received Cloud Event to CloudEvent (String -> CloudEvent)
+            CloudEvent cloudEvent = deserializeCloudEvent(rawMessage);
+            if (cloudEvent == null) {
+                logger.error("Failed to deserialize CloudEvent from topic: {}, partition: {}, offset: {}, key: {}", 
+                    record.topic(), record.partition(), record.offset(), record.key());
+                return;
+            }
 
             logger.info("Received CloudEvent with ID: {}, Type: {}, Source: {}", 
                        cloudEvent.getId(), cloudEvent.getType(), cloudEvent.getSource());
 
+            // Check whether the cloud event attributes were delivered as defined in the schema
+            if (!validateCloudEventAttributes(cloudEvent)) {
+                logger.error("CloudEvent attributes validation failed from topic: {}, partition: {}, offset: {}, key: {}", 
+                    record.topic(), record.partition(), record.offset(), record.key());
+                return;
+            }
+
+            // Map cloud event data to generated class
             if (cloudEvent.getData() != null) {
                 PaymentDisbursementResponse response = objectMapper.readValue(
                     cloudEvent.getData().toBytes(), 
@@ -52,6 +70,7 @@ public class PaymentResponseConsumer {
                 logger.info("Processing payment response for disbursementId: {}, status: {}", 
                            response.getDisbursementId(), response.getStatus());
 
+                // Process payment response
                 processPaymentResponse(response);
             } else {
                 logger.warn("Received CloudEvent with no data");
@@ -62,53 +81,8 @@ public class PaymentResponseConsumer {
         }
     }
 
-    private void logDeserializationErrorHeaders(ConsumerRecord<String, CloudEvent> record) {
-        if (record.headers() != null) {
-            // Log standard Spring Kafka ErrorHandlingDeserializer headers
-            logSpecificErrorHeader(record, "spring.deserializer.exception.message", "Exception Message");
-            logSpecificErrorHeader(record, "spring.deserializer.exception.stacktrace", "Exception Stacktrace");
-            logSpecificErrorHeader(record, "spring.deserializer.exception.fqcn", "Exception Class");
-            logSpecificErrorHeader(record, "spring.deserializer.key.exception.message", "Key Exception Message");
-            logSpecificErrorHeader(record, "spring.deserializer.key.exception.stacktrace", "Key Exception Stacktrace");
-            logSpecificErrorHeader(record, "spring.deserializer.key.exception.fqcn", "Key Exception Class");
-            logSpecificErrorHeader(record, "spring.deserializer.value.exception.message", "Value Exception Message");
-            logSpecificErrorHeader(record, "spring.deserializer.value.exception.stacktrace", "Value Exception Stacktrace");
-            logSpecificErrorHeader(record, "spring.deserializer.value.exception.fqcn", "Value Exception Class");
 
-            // Log any other headers that might contain error information
-            record.headers().forEach(header -> {
-                String headerKey = header.key();
-                if ((headerKey.contains("deserializer") || headerKey.contains("error")) && 
-                    !headerKey.startsWith("spring.deserializer.")) {
-                    String headerValue = header.value() != null ? new String(header.value()) : "null";
-                    logger.error("Additional deserialization error header - {}: {}", headerKey, headerValue);
-                }
-            });
-        }
-    }
 
-    private void logSpecificErrorHeader(ConsumerRecord<String, CloudEvent> record, String headerKey, String description) {
-        Header header = record.headers().lastHeader(headerKey);
-        if (header != null && header.value() != null) {
-            String headerValue = new String(header.value());
-            logger.error("Deserialization error - {}: {}", description, headerValue);
-        }
-    }
-
-    private void logAllHeaders(ConsumerRecord<String, CloudEvent> record) {
-        if (record.headers() != null && record.headers().iterator().hasNext()) {
-            logger.info("Kafka message headers for topic: {}, partition: {}, offset: {}", 
-                       record.topic(), record.partition(), record.offset());
-
-            for (Header header : record.headers()) {
-                String headerValue = header.value() != null ? new String(header.value()) : "null";
-                logger.info("Header - Key: {}, Value: {}", header.key(), headerValue);
-            }
-        } else {
-            logger.info("No Kafka headers found for message on topic: {}, partition: {}, offset: {}", 
-                       record.topic(), record.partition(), record.offset());
-        }
-    }
 
     private void processPaymentResponse(PaymentDisbursementResponse response) {
         switch (response.getStatus()) {
@@ -128,5 +102,82 @@ public class PaymentResponseConsumer {
                 logger.warn("Unknown payment status: {} for disbursementId: {}", 
                            response.getStatus(), response.getDisbursementId());
         }
+    }
+
+    /**
+     * Check whether the received Cloud Event has been sent in structured mode
+     * (Content-Type: application/cloudevents+json; charset=UTF-8)
+     */
+    private boolean isStructuredMode(ConsumerRecord<String, String> record) {
+        Header contentTypeHeader = record.headers().lastHeader("content-type");
+        if (contentTypeHeader == null) {
+            logger.debug("No content-type header found");
+            return false;
+        }
+
+        String contentType = new String(contentTypeHeader.value());
+        logger.debug("Content-Type header: {}", contentType);
+
+        // Check for structured mode content type
+        return contentType.toLowerCase().contains("application/cloudevents+json");
+    }
+
+    /**
+     * Deserialize the received Cloud Event string to CloudEvent object
+     */
+    private CloudEvent deserializeCloudEvent(String rawMessage) {
+        try {
+            EventFormat eventFormat = new JsonFormat();
+            return eventFormat.deserialize(rawMessage.getBytes());
+        } catch (Exception e) {
+            logger.error("Failed to deserialize CloudEvent: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Validate cloud event attributes against the schema requirements
+     */
+    private boolean validateCloudEventAttributes(CloudEvent cloudEvent) {
+        // Check specversion
+        if (!"1.0".equals(cloudEvent.getSpecVersion().toString())) {
+            logger.error("Invalid specversion: expected '1.0', got '{}'", cloudEvent.getSpecVersion());
+            return false;
+        }
+
+        // Check type
+        if (!"com.ruyalabs.payment.disbursement.request".equals(cloudEvent.getType())) {
+            logger.error("Invalid type: expected 'com.ruyalabs.payment.disbursement.request', got '{}'", cloudEvent.getType());
+            return false;
+        }
+
+        // Check source
+        String source = cloudEvent.getSource().toString();
+        if (!"payment-service".equals(source) && !"payment-2-service".equals(source)) {
+            logger.error("Invalid source: expected 'payment-service' or 'payment-2-service', got '{}'", source);
+            return false;
+        }
+
+        // Check id is present and not empty
+        if (cloudEvent.getId() == null || cloudEvent.getId().trim().isEmpty()) {
+            logger.error("Invalid id: id is required and cannot be empty");
+            return false;
+        }
+
+        // Check datacontenttype
+        if (cloudEvent.getDataContentType() != null && 
+            !"application/json".equals(cloudEvent.getDataContentType())) {
+            logger.error("Invalid datacontenttype: expected 'application/json', got '{}'", cloudEvent.getDataContentType());
+            return false;
+        }
+
+        // Check data is present
+        if (cloudEvent.getData() == null) {
+            logger.error("Invalid data: data is required");
+            return false;
+        }
+
+        logger.debug("CloudEvent attributes validation passed");
+        return true;
     }
 }
